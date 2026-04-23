@@ -183,15 +183,20 @@ const submit = async () => {
           送信
         </button>
       </div>
+
 <div style={{ marginTop: '30px', backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px' }}>
-        <h2>今月の試合数：{gameCount}</h2>
-        <h2>今月のランキング</h2>
-        {ranking.map((p, i) => (
+  {/* 見出しと試合数を横並びに配置 */}
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+    <h1 style={{ margin: 0 , fontWeight: 'bold' }}>今月のランキング</h1>
+    <span style={{ fontWeight: 'bold' }}>（今月の試合数：{gameCount}）</span>
+  </div>
+  
+{ranking.map((p, i) => (
           <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #eee' }}>
-            {i + 1}位 {p.name} : {p.total.toFixed(1)}
-          </div>
-        ))}
-      </div>
+            {i + 1}位 {p.name} : {p.total.toFixed(1)} ({p.games})
+    </div>
+  ))}
+</div>
 
       {/* ここにボタンリンクを追加 */}
       <div style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
