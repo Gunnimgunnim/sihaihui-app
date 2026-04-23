@@ -47,7 +47,7 @@ export default function HistoryPage() {
         
         {/* 黒枠で囲った月選択エリア */}
         <div style={{ 
-          border: '1px solid #000', 
+
           borderRadius: '8px', 
           padding: '10px', 
           marginBottom: '20px' 
