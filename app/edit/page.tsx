@@ -57,7 +57,7 @@ export default function EditPage() {
       <nav style={{ marginBottom: 20 }}>
         <Link href="/" style={{ color: '#fff' }}>← トップページに戻る</Link>
       </nav>
-      <h1 style={{ color: '#fff' }}>対局履歴の修正</h1>
+      <h1 style={{ color: '#fff' }}>対局履歴の編集・削除</h1>
 
       {results.map((r) => (
         <div key={r.id} style={{ 
@@ -68,7 +68,17 @@ export default function EditPage() {
           backgroundColor: '#fff', // 枠内を白に
           color: '#000'            // 文字を黒に
         }}>
-          <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>{new Date(r.created_at).toLocaleString()}</p>
+         
+<p style={{ fontWeight: 'bold', marginBottom: '10px' }}>
+{new Date(r.created_at.includes('Z') ? r.created_at : r.created_at + 'Z').toLocaleString('ja-JP', { 
+    timeZone: 'Asia/Tokyo', 
+  year: 'numeric', 
+  month: 'numeric', 
+  day: 'numeric', 
+  hour: '2-digit', 
+  minute: '2-digit' 
+})}
+</p>
 
           {[0, 1, 2, 3].map((i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0', borderBottom: '1px solid #eee' }}>

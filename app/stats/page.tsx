@@ -99,7 +99,7 @@ export default function StatsPage() {
   return (
     <div style={{ padding: 20, backgroundColor: '#000', minHeight: '100vh', color: '#fff' }}>
       <nav style={{ marginBottom: 20 }}>
-        <Link href="/" style={{ color: '#fff' }}>← トップページへ</Link>
+        <Link href="/" style={{ color: '#fff' }}>← トップページに戻る</Link>
       </nav>
       
       <div style={{ backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>

@@ -39,20 +39,43 @@ export default function HistoryPage() {
   return (
     <div style={{ padding: 20, backgroundColor: '#000', minHeight: '100vh', color: '#fff' }}>
       <nav style={{ marginBottom: 20 }}>
-        <Link href="/" style={{ color: '#fff' }}>← トップページへ</Link>
+        <Link href="/" style={{ color: '#fff' }}>← トップページに戻る</Link>
       </nav>
 
-      <div style={{ backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px' }}>
-        <h1>過去のランキング</h1>
-        <input 
-          type="month" 
-          onChange={(e) => { setSelectedMonth(e.target.value); fetchHistory(e.target.value) }}
-          style={{ padding: '10px', fontSize: '1rem', width: '100%', marginBottom: '20px' }}
-        />
+<div style={{ backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px' }}>
+        <h1 style={{ marginTop: 0 }}>過去のランキング</h1>
+        
+        {/* 黒枠で囲った月選択エリア */}
+        <div style={{ 
+          border: '1px solid #000', 
+          borderRadius: '8px', 
+          padding: '10px', 
+          marginBottom: '20px' 
+        }}>
+          <input 
+            type="month" 
+            onChange={(e) => { setSelectedMonth(e.target.value); fetchHistory(e.target.value) }}
+            style={{ 
+              padding: '10px', 
+              fontSize: '1rem', 
+              width: '100%', 
+              border: '1px solid #ccc',
+              borderRadius: '4px'
+            }}
+          />
+        </div>
 
-        {ranking.length > 0 ? (
+{ranking.length > 0 ? (
           ranking.map((p, i) => (
-            <div key={i} style={{ padding: '10px', borderBottom: '1px solid #eee', fontWeight: 'bold' }}>
+            <div 
+              key={i} 
+              style={{ 
+                padding: '10px', 
+                borderBottom: '1px solid #eee', 
+                // ここを条件式に変更しました
+                fontWeight: (i + 1) <= 3 ? 'bold' : 'normal' 
+              }}
+            >
               {i + 1}位: {p.name} ({p.total.toFixed(1)})
             </div>
           ))
@@ -62,4 +85,5 @@ export default function HistoryPage() {
       </div>
     </div>
   )
+
 }

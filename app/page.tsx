@@ -51,15 +51,22 @@ export default function Home() {
   }
 
 
-
-  const fetchRanking = async () => {
-    const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+const fetchRanking = async () => {
+    // 日本時間での現在日時を取得
+    const now = new Date();
+    const jstDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    
+    // 今月1日の0時0分を日本時間ベースで作成
+    const firstDay = new Date(jstDate.getFullYear(), jstDate.getMonth(), 1);
+    
+    // Supabaseに投げる際はtoISOString()を使うとUTCに変換されるため、
+    // 「今月1日 0:00 (JST)」をUTCに換算した文字列を生成する
+    const firstDayISO = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString();
 
     const { data: results, error: resultsError } = await supabase
       .from('results')
       .select('*')
-      .gte('created_at', firstDay.toISOString())
+      .gte('created_at', firstDayISO) // ここで日本時間の月頭からを指定
 
     if (resultsError) {
       console.log(resultsError)
