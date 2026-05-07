@@ -66,16 +66,30 @@ export default function Home() {
     setGameCount(results?.length || 0)
   }
 
-  const submit = async () => {
-    if (scores.reduce((a, b) => a + b, 0) !== 1000) { alert('合計が1000ではありません'); return }
-    const finalScores = calculateScores(scores)
-    await supabase.from('results').insert({
-      player1: selected[0], player2: selected[1], player3: selected[2], player4: selected[3],
-      score1: finalScores[0], score2: finalScores[1], score3: finalScores[2], score4: finalScores[3]
-    })
-    fetchRanking()
-    alert('対局お疲れ様でした')
+const submit = async () => {
+  const total = scores.reduce((a, b) => a + b, 0)
+
+  if (total !== 1000) {
+    alert(`合計が1000ではありません（現在の合計：${total}）`)
+    return
   }
+
+  const finalScores = calculateScores(scores)
+
+  await supabase.from('results').insert({
+    player1: selected[0],
+    player2: selected[1],
+    player3: selected[2],
+    player4: selected[3],
+    score1: finalScores[0],
+    score2: finalScores[1],
+    score3: finalScores[2],
+    score4: finalScores[3]
+  })
+
+  fetchRanking()
+  alert('対局お疲れ様でした')
+}
 
   return (
     <div style={{ padding: 20, backgroundColor: '#000', minHeight: '100vh', color: '#fff' }}>
