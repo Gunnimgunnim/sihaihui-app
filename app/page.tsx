@@ -38,35 +38,37 @@ export default function Home() {
   }
 
 const fetchRanking = async () => {
-    // 1. 日本時間での現在日時を取得
+    // 1. 日本時間（JST）での現在日時を正しく取得
     const now = new Date();
     const jstDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
     
-    // 現在の「年」「月」「日」「時間」を取得
     const currentYear = jstDate.getFullYear();
     const currentMonth = jstDate.getMonth();
     const currentDay = jstDate.getDate();
     const currentHour = jstDate.getHours();
 
-    let firstDay: Date;
+    // 境界線（集計スタート地点）となる日本時間の「日時」を決める
+    let targetYear = currentYear;
+    let targetMonth = currentMonth;
 
-    // 2. 朝6時前の判定ロジック
-    // 1日の朝6時より前であれば、まだ「先月の月頭」を基準にする
+    // 1日の朝6時より前であれば、まだ「先月の1日朝6時」からを今月分（表示上）の集計対象とする
     if (currentDay === 1 && currentHour < 6) {
-      firstDay = new Date(currentYear, currentMonth - 1, 1);
-    } else {
-      // それ以外（1日の朝6時以降、または2日以降）なら「今月の月頭」にする
-      firstDay = new Date(currentYear, currentMonth, 1);
+      targetMonth = currentMonth - 1;
     }
-    
-    // 3. 基準日（1日0:00 JST）をUTCに換算したISO文字列を生成する
-    const firstDayISO = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString();
 
-    // Supabaseからデータを取得
+    // 日本時間での「該当月の1日 朝6:00:00」のDateオブジェクトを作成
+    const borderJST = new Date(targetYear, targetMonth, 1, 6, 0, 0, 0);
+
+    // Supabase（UTC）と比較するために、純粋なUTCのISO文字列に変換
+    // borderJST.getTime() から日本時間の時差分（9時間 = 32400000ミリ秒）を引くことで
+    // 「JSTの1日朝6:00」＝「UTCの1日前日の21:00」という正確な絶対時間を割り出します
+    const borderISO = new Date(borderJST.getTime() - (9 * 60 * 60 * 1000)).toISOString();
+
+    // Supabaseから「指定した月の1日朝6:00」以降のデータを取得
     const { data: results, error: resultsError } = await supabase
       .from('results')
       .select('*')
-      .gte('created_at', firstDayISO);
+      .gte('created_at', borderISO);
 
     if (resultsError) {
       console.log(resultsError);
@@ -95,7 +97,6 @@ const fetchRanking = async () => {
     setGameCount(results?.length || 0);
   };
 
-const submit = async () => {
   const total = scores.reduce((a, b) => a + b, 0)
 
   if (total !== 1000) {
