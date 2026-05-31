@@ -37,34 +37,63 @@ export default function Home() {
     return result
   }
 
-  const fetchRanking = async () => {
+const fetchRanking = async () => {
+    // 1. 日本時間での現在日時を取得
     const now = new Date();
     const jstDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-    const firstDay = new Date(jstDate.getFullYear(), jstDate.getMonth(), 1);
+    
+    // 現在の「年」「月」「日」「時間」を取得
+    const currentYear = jstDate.getFullYear();
+    const currentMonth = jstDate.getMonth();
+    const currentDay = jstDate.getDate();
+    const currentHour = jstDate.getHours();
+
+    let firstDay: Date;
+
+    // 2. 朝6時前の判定ロジック
+    // 1日の朝6時より前であれば、まだ「先月の月頭」を基準にする
+    if (currentDay === 1 && currentHour < 6) {
+      firstDay = new Date(currentYear, currentMonth - 1, 1);
+    } else {
+      // それ以外（1日の朝6時以降、または2日以降）なら「今月の月頭」にする
+      firstDay = new Date(currentYear, currentMonth, 1);
+    }
+    
+    // 3. 基準日（1日0:00 JST）をUTCに換算したISO文字列を生成する
     const firstDayISO = new Date(firstDay.getTime() - (firstDay.getTimezoneOffset() * 60000)).toISOString();
 
-    const { data: results } = await supabase.from('results').select('*').gte('created_at', firstDayISO)
-    const { data: playersData } = await supabase.from('players').select('*')
+    // Supabaseからデータを取得
+    const { data: results, error: resultsError } = await supabase
+      .from('results')
+      .select('*')
+      .gte('created_at', firstDayISO);
+
+    if (resultsError) {
+      console.log(resultsError);
+      return;
+    }
+
+    const { data: playersData } = await supabase.from('players').select('*');
 
     // 最新の結果を取得
-    const { data: latest } = await supabase.from('results').select('*').order('created_at', { ascending: false }).limit(1)
-    if (latest && latest.length > 0) setRecentResult(latest[0])
+    const { data: latest } = await supabase.from('results').select('*').order('created_at', { ascending: false }).limit(1);
+    if (latest && latest.length > 0) setRecentResult(latest[0]);
 
-    const scoreMap: any = {}
+    const scoreMap: any = {};
     results?.forEach(r => {
       [ { id: r.player1, score: r.score1 }, { id: r.player2, score: r.score2 }, { id: r.player3, score: r.score3 }, { id: r.player4, score: r.score4 } ].forEach(p => {
         if (!scoreMap[p.id]) {
-          const player = playersData?.find(pl => pl.id === p.id)
-          scoreMap[p.id] = { name: player?.name, total: 0, games: 0 }
+          const player = playersData?.find(pl => pl.id === p.id);
+          scoreMap[p.id] = { name: player?.name, total: 0, games: 0 };
         }
-        scoreMap[p.id].total += p.score
-        scoreMap[p.id].games += 1
-      })
-    })
+        scoreMap[p.id].total += p.score;
+        scoreMap[p.id].games += 1;
+      });
+    });
 
-    setRanking(Object.values(scoreMap).sort((a: any, b: any) => b.total - a.total))
-    setGameCount(results?.length || 0)
-  }
+    setRanking(Object.values(scoreMap).sort((a: any, b: any) => b.total - a.total));
+    setGameCount(results?.length || 0);
+  };
 
 const submit = async () => {
   const total = scores.reduce((a, b) => a + b, 0)
