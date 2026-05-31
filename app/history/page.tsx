@@ -7,17 +7,26 @@ import { supabase } from '@/lib/supabase'
 export default function HistoryPage() {
   const [ranking, setRanking] = useState<any[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [gameCount, setGameCount] = useState(0) // 💡合計試合数の状態を追加
 
   const fetchHistory = async (month: string) => {
-    // month は "2026-04" のような形式を想定
-    const start = new Date(month + '-01T09:00:00Z')
-    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1)
+    if (!month) return
+
+    const [yearStr, monthStr] = month.split('-')
+    const year = parseInt(yearStr, 10)
+    const monthIndex = parseInt(monthStr, 10) - 1
+
+    const startJST = new Date(year, monthIndex, 1, 6, 0, 0, 0)
+    const endJST = new Date(year, monthIndex + 1, 1, 6, 0, 0, 0)
+
+    const startISO = new Date(startJST.getTime() - (9 * 60 * 60 * 1000)).toISOString()
+    const endISO = new Date(endJST.getTime() - (9 * 60 * 60 * 1000)).toISOString()
 
     const { data: results } = await supabase
       .from('results')
       .select('*')
-      .gte('created_at', start.toISOString())
-      .lt('created_at', end.toISOString())
+      .gte('created_at', startISO)
+      .lt('created_at', endISO)
 
     const { data: playersData } = await supabase.from('players').select('*')
     const scoreMap: any = {}
@@ -27,13 +36,15 @@ export default function HistoryPage() {
         if (!id) return
         if (!scoreMap[id]) {
           const player = playersData?.find(pl => pl.id === id)
-          scoreMap[id] = { name: player?.name || '不明', total: 0 }
+          scoreMap[id] = { name: player?.name || '不明', total: 0, games: 0 }
         }
         scoreMap[id].total += [r.score1, r.score2, r.score3, r.score4][i]
+        scoreMap[id].games += 1
       })
     })
 
     setRanking(Object.values(scoreMap).sort((a: any, b: any) => b.total - a.total))
+    setGameCount(results?.length || 0) // 💡取得した対局数をセット
   }
 
   return (
@@ -42,16 +53,18 @@ export default function HistoryPage() {
         <Link href="/" style={{ color: '#fff' }}>← トップページに戻る</Link>
       </nav>
 
-<div style={{ backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px' }}>
-        <h1 style={{ marginTop: 0 }}>過去のランキング</h1>
+      <div style={{ backgroundColor: '#fff', color: '#000', padding: '20px', borderRadius: '8px' }}>
         
-        {/* 黒枠で囲った月選択エリア */}
-        <div style={{ 
-
-          borderRadius: '8px', 
-          padding: '10px', 
-          marginBottom: '20px' 
-        }}>
+        {/* 見出しと合計試合数を横並びに配置 */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h1 style={{ margin: 0, fontWeight: 'bold', fontSize: '1.5rem' }}>過去のランキング</h1>
+          {selectedMonth && (
+            <span style={{ fontWeight: 'bold' }}>（この月の試合数：{gameCount}）</span>
+          )}
+        </div>
+        
+        {/* 月選択エリア */}
+        <div style={{ borderRadius: '8px', padding: '10px', marginBottom: '20px' }}>
           <input 
             type="month" 
             onChange={(e) => { setSelectedMonth(e.target.value); fetchHistory(e.target.value) }}
@@ -65,25 +78,27 @@ export default function HistoryPage() {
           />
         </div>
 
-{ranking.length > 0 ? (
-          ranking.map((p, i) => (
-            <div 
-              key={i} 
-              style={{ 
-                padding: '10px', 
-                borderBottom: '1px solid #eee', 
-                // ここを条件式に変更しました
-                fontWeight: (i + 1) <= 3 ? 'bold' : 'normal' 
-              }}
-            >
-              {i + 1}位: {p.name} ({p.total.toFixed(1)})
-            </div>
-          ))
+        {ranking.length > 0 ? (
+          ranking.map((p, i) => {
+            const isTooFew = p.games <= 4
+            return (
+              <div 
+                key={i} 
+                style={{ 
+                  padding: '10px', 
+                  borderBottom: '1px solid #eee', 
+                  color: isTooFew ? '#777777' : '#000',
+                  fontWeight: (!isTooFew && (i + 1) <= 3) ? 'bold' : 'normal' 
+                }}
+              >
+                {i + 1}位: {p.name} : {p.total.toFixed(1)} ({p.games}戦)
+              </div>
+            )
+          })
         ) : (
           <p>データが見つかりません</p>
         )}
       </div>
     </div>
   )
-
 }
