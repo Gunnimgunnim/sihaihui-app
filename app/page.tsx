@@ -10,7 +10,7 @@ export default function Home() {
   const [scores, setScores] = useState([0, 0, 0, 0])
   const [ranking, setRanking] = useState<any[]>([])
   const [gameCount, setGameCount] = useState(0)
-  const [recentResult, setRecentResult] = useState<any>(null) // 追加
+  const [recentResult, setRecentResult] = useState<any>(null)
 
   useEffect(() => {
     fetchPlayers()
@@ -37,34 +37,24 @@ export default function Home() {
     return result
   }
 
-const fetchRanking = async () => {
-    // 1. 日本時間（JST）での現在日時を正しく取得
+  const fetchRanking = async () => {
     const now = new Date();
     const jstDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-    
     const currentYear = jstDate.getFullYear();
     const currentMonth = jstDate.getMonth();
     const currentDay = jstDate.getDate();
     const currentHour = jstDate.getHours();
 
-    // 境界線（集計スタート地点）となる日本時間の「日時」を決める
     let targetYear = currentYear;
     let targetMonth = currentMonth;
 
-    // 1日の朝6時より前であれば、まだ「先月の1日朝6時」からを今月分（表示上）の集計対象とする
     if (currentDay === 1 && currentHour < 6) {
       targetMonth = currentMonth - 1;
     }
 
-    // 日本時間での「該当月の1日 朝6:00:00」のDateオブジェクトを作成
     const borderJST = new Date(targetYear, targetMonth, 1, 6, 0, 0, 0);
-
-    // Supabase（UTC）と比較するために、純粋なUTCのISO文字列に変換
-    // borderJST.getTime() から日本時間の時差分（9時間 = 32400000ミリ秒）を引くことで
-    // 「JSTの1日朝6:00」＝「UTCの1日前日の21:00」という正確な絶対時間を割り出します
     const borderISO = new Date(borderJST.getTime() - (9 * 60 * 60 * 1000)).toISOString();
 
-    // Supabaseから「指定した月の1日朝6:00」以降のデータを取得
     const { data: results, error: resultsError } = await supabase
       .from('results')
       .select('*')
@@ -77,7 +67,6 @@ const fetchRanking = async () => {
 
     const { data: playersData } = await supabase.from('players').select('*');
 
-    // 最新の結果を取得
     const { data: latest } = await supabase.from('results').select('*').order('created_at', { ascending: false }).limit(1);
     if (latest && latest.length > 0) setRecentResult(latest[0]);
 
@@ -97,29 +86,30 @@ const fetchRanking = async () => {
     setGameCount(results?.length || 0);
   };
 
-  const total = scores.reduce((a, b) => a + b, 0)
+  const submit = async () => {
+    const total = scores.reduce((a, b) => a + b, 0)
 
-  if (total !== 1000) {
-    alert(`合計が1000ではありません（現在の合計：${total}）`)
-    return
-  }
+    if (total !== 1000) {
+      alert(`合計が1000ではありません（現在の合計：${total}）`)
+      return
+    }
 
-  const finalScores = calculateScores(scores)
+    const finalScores = calculateScores(scores)
 
-  await supabase.from('results').insert({
-    player1: selected[0],
-    player2: selected[1],
-    player3: selected[2],
-    player4: selected[3],
-    score1: finalScores[0],
-    score2: finalScores[1],
-    score3: finalScores[2],
-    score4: finalScores[3]
-  })
+    await supabase.from('results').insert({
+      player1: selected[0],
+      player2: selected[1],
+      player3: selected[2],
+      player4: selected[3],
+      score1: finalScores[0],
+      score2: finalScores[1],
+      score3: finalScores[2],
+      score4: finalScores[3]
+    })
 
-  fetchRanking()
-  alert('対局お疲れ様でした')
-}
+    fetchRanking()
+    alert('対局お疲れ様でした')
+  }; // 👈 ここで submit 関数が閉じます
 
   return (
     <div style={{ padding: 20, backgroundColor: '#000', minHeight: '100vh', color: '#fff' }}>
@@ -157,9 +147,9 @@ const fetchRanking = async () => {
           <span style={{ fontWeight: 'bold' }}>（今月の試合数：{gameCount}）</span>
         </div>
         {ranking.map((p, i) => {
-          const isTooFew = p.games <= 2;
+          const isTooFew = p.games <= 4; // 💡ご指定通り「4戦以下」でグレーアウト
           return (
-            <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #eee', color: isTooFew ? '#999' : '#000', fontWeight: (!isTooFew && (i + 1) <= 3) ? 'bold' : 'normal' }}>
+            <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #eee', color: isTooFew ? '#777777' : '#000', fontWeight: (!isTooFew && (i + 1) <= 3) ? 'bold' : 'normal' }}>
               {i + 1}位 {p.name} : {p.total.toFixed(1)} ({p.games})
             </div>
           )
