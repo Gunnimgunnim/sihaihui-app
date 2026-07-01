@@ -29,7 +29,7 @@ export default function Home() {
   const calculateScores = (scores: number[]) => {
     const players = scores.map((score, i) => ({ index: i, score }))
     players.sort((a, b) => b.score !== a.score ? b.score - a.score : a.index - b.index)
-    const uma = [40, 10, -10, -20]
+    const uma = [0, -20, -40, -60]
     const result = Array(4).fill(0)
     players.forEach((p, rank) => {
       result[p.index] = Math.round(((p.score - 300) / 10 + uma[rank]) * 10) / 10
@@ -37,28 +37,42 @@ export default function Home() {
     return result
   }
 
-  const fetchRanking = async () => {
+ const fetchRanking = async () => {
+    // 1. 現在のUTC時間ベースで「年」「月」「日」「時間」を直接取得する
     const now = new Date();
-    const jstDate = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-    const currentYear = jstDate.getFullYear();
-    const currentMonth = jstDate.getMonth();
-    const currentDay = jstDate.getDate();
-    const currentHour = jstDate.getHours();
+    const currentUTCYear = now.getUTCFullYear();
+    const currentUTCMonth = now.getUTCMonth(); // 0 = 1月, 5 = 6月...
+    const currentUTCDate = now.getUTCDate();
+    const currentUTCHour = now.getUTCHours();
 
-    let targetYear = currentYear;
-    let targetMonth = currentMonth;
+    let targetYear = currentUTCYear;
+    let targetMonth = currentUTCMonth;
 
-    if (currentDay === 1 && currentHour < 6) {
-      targetMonth = currentMonth - 1;
+    // 【判定ロジック】
+    // UTCで「当月末日の21:00」を過ぎているか、あるいはすでに「翌月」に入っている場合
+    // 例: 日本時間6月1日朝5時 ＝ UTC5月31日20時 (まだ5月扱い → targetMonthは5月のまま)
+    // 例: 日本時間6月1日朝6時 ＝ UTC5月31日21時 (ここから6月扱い → targetMonthを6月に進める)
+    if (currentUTCDate === new Date(currentUTCYear, currentUTCMonth + 1, 0).getUTCDate() && currentUTCHour >= 21) {
+      targetMonth = currentUTCMonth + 1;
+    } else if (currentUTCDate < 20) { 
+      // 月の初頭（1日〜20日など、UTCで確実に月が変わっている安全圏）なら、そのまま現在のUTC月をベースにする
+      targetMonth = currentUTCMonth;
+    } else {
+      // 月末の21時前（例：UTC5月31日15時＝JST6月1日0時など）は、まだ前月扱いにする
+      targetMonth = currentUTCMonth;
     }
 
-    const borderJST = new Date(targetYear, targetMonth, 1, 6, 0, 0, 0);
-    const borderISO = new Date(borderJST.getTime() - (9 * 60 * 60 * 1000)).toISOString();
+    // 2. 厳密なUTCの開始時刻と終了時刻のISO文字列を作成する
+    // targetMonthの「前月の末日 21:00:00.000Z」から「当月の末日 21:00:00.000Z」まで
+    const startUTC = new Date(Date.UTC(targetYear, targetMonth, 0, 21, 0, 0, 0)).toISOString();
+    const endUTC = new Date(Date.UTC(targetYear, targetMonth + 1, 0, 21, 0, 0, 0)).toISOString();
 
+    // 3. SupabaseからUTCの期間を指定して取得
     const { data: results, error: resultsError } = await supabase
       .from('results')
       .select('*')
-      .gte('created_at', borderISO);
+      .gte('created_at', startUTC)
+      .lt('created_at', endUTC);
 
     if (resultsError) {
       console.log(resultsError);
@@ -67,6 +81,7 @@ export default function Home() {
 
     const { data: playersData } = await supabase.from('players').select('*');
 
+    // 最新の結果を取得
     const { data: latest } = await supabase.from('results').select('*').order('created_at', { ascending: false }).limit(1);
     if (latest && latest.length > 0) setRecentResult(latest[0]);
 
@@ -147,7 +162,7 @@ export default function Home() {
           <span style={{ fontWeight: 'bold' }}>（今月の試合数：{gameCount}）</span>
         </div>
         {ranking.map((p, i) => {
-          const isTooFew = p.games <= 4; // 💡ご指定通り「4戦以下」でグレーアウト
+          const isTooFew = p.games <= 2; 
           return (
             <div key={i} style={{ padding: '5px 0', borderBottom: '1px solid #eee', color: isTooFew ? '#777777' : '#000', fontWeight: (!isTooFew && (i + 1) <= 3) ? 'bold' : 'normal' }}>
               {i + 1}位 {p.name} : {p.total.toFixed(1)} ({p.games})

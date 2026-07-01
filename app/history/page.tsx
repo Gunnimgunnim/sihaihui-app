@@ -9,18 +9,19 @@ export default function HistoryPage() {
   const [selectedMonth, setSelectedMonth] = useState('')
   const [gameCount, setGameCount] = useState(0) // 💡合計試合数の状態を追加
 
-  const fetchHistory = async (month: string) => {
+const fetchHistory = async (month: string) => {
     if (!month) return
 
     const [yearStr, monthStr] = month.split('-')
     const year = parseInt(yearStr, 10)
-    const monthIndex = parseInt(monthStr, 10) - 1
+    const monthIndex = parseInt(monthStr, 10) - 1 // 0 = 1月, 1 = 2月...
 
-    const startJST = new Date(year, monthIndex, 1, 6, 0, 0, 0)
-    const endJST = new Date(year, monthIndex + 1, 1, 6, 0, 0, 0)
-
-    const startISO = new Date(startJST.getTime() - (9 * 60 * 60 * 1000)).toISOString()
-    const endISO = new Date(endJST.getTime() - (9 * 60 * 60 * 1000)).toISOString()
+    // 【厳密なUTC期間の生成】
+    // 例：month が "2026-05" の場合
+    // startISO: 2026年5月1日朝6時（JST） ＝ 2026年4月30日21:00:00（UTC）
+    // endISO: 2026年6月1日朝6時（JST） ＝ 2026年5月31日21:00:00（UTC）
+    const startISO = new Date(Date.UTC(year, monthIndex, 0, 21, 0, 0, 0)).toISOString()
+    const endISO = new Date(Date.UTC(year, monthIndex + 1, 0, 21, 0, 0, 0)).toISOString()
 
     const { data: results } = await supabase
       .from('results')
@@ -91,7 +92,7 @@ export default function HistoryPage() {
                   fontWeight: (!isTooFew && (i + 1) <= 3) ? 'bold' : 'normal' 
                 }}
               >
-                {i + 1}位: {p.name} : {p.total.toFixed(1)} ({p.games}戦)
+                {i + 1}位: {p.name} : {p.total.toFixed(1)} ({p.games})
               </div>
             )
           })
