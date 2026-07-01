@@ -104,8 +104,8 @@ export default function Home() {
   const submit = async () => {
     const total = scores.reduce((a, b) => a + b, 0)
 
-    if (total !== 1000) {
-      alert(`合計が1000ではありません（現在の合計：${total}）`)
+    if (total !== 1200) {
+      alert(`合計が1200ではありません（現在の合計：${total}）`)
       return
     }
 
