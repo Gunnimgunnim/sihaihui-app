@@ -20,8 +20,7 @@ export default function StatsPage() {
     const { data } = await supabase.from('players').select('*')
     setPlayers(data || [])
   }
-
-  const calculateStats = async (playerId: string) => {
+const calculateStats = async (playerId: string) => {
     if (!playerId) {
       setStats(null)
       return
@@ -30,8 +29,27 @@ export default function StatsPage() {
     const { data: results } = await supabase.from('results').select('*')
     if (!results) return
 
+    // 【厳密なUTC基準による「今月」の境界線生成】
     const now = new Date()
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const currentUTCYear = now.getUTCFullYear()
+    const currentUTCMonth = now.getUTCMonth()
+    const currentUTCDate = now.getUTCDate()
+    const currentUTCHour = now.getUTCHours()
+
+    let targetYear = currentUTCYear
+    let targetMonth = currentUTCMonth
+
+    // トップページと同じ朝6時（UTC前日21時）切り替えロジック
+    if (currentUTCDate === new Date(currentUTCYear, currentUTCMonth + 1, 0).getUTCDate() && currentUTCHour >= 21) {
+      targetMonth = currentUTCMonth + 1
+    } else if (currentUTCDate < 20) {
+      targetMonth = currentUTCMonth
+    } else {
+      targetMonth = currentUTCMonth
+    }
+
+    // 今月の集計スタート地点（JSTの1日朝6:00 ＝ UTCの前月末日21:00）の時刻インスタンスを作成
+    const borderUTC = new Date(Date.UTC(targetYear, targetMonth, 0, 21, 0, 0, 0))
 
     const playerResults = results.filter(r => 
       [r.player1, r.player2, r.player3, r.player4].includes(playerId)
@@ -63,11 +81,12 @@ export default function StatsPage() {
     }
 
     const all = process(playerResults)
-    const monthly = process(playerResults.filter(r => new Date(r.created_at) >= firstDay))
+    
+    // 生成した borderUTC と作成日時（created_at）を純粋な時間オブジェクト同士で比較
+    const monthly = process(playerResults.filter(r => new Date(r.created_at) >= borderUTC))
 
     setStats({ all, monthly })
   }
-
   const RankingPie = ({ data }: { data: any[] }) => (
     <ResponsiveContainer width="100%" height={200}>
       <PieChart>
