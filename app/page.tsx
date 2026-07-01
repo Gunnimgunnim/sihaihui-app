@@ -29,7 +29,7 @@ export default function Home() {
   const calculateScores = (scores: number[]) => {
     const players = scores.map((score, i) => ({ index: i, score }))
     players.sort((a, b) => b.score !== a.score ? b.score - a.score : a.index - b.index)
-    const uma = [0, -20, -40, -60]
+    const uma = [30, 10, -10, -30]
     const result = Array(4).fill(0)
     players.forEach((p, rank) => {
       result[p.index] = Math.round(((p.score - 300) / 10 + uma[rank]) * 10) / 10
