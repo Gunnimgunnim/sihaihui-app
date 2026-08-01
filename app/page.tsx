@@ -29,7 +29,8 @@ export default function Home() {
   const calculateScores = (scores: number[]) => {
     const players = scores.map((score, i) => ({ index: i, score }))
     players.sort((a, b) => b.score !== a.score ? b.score - a.score : a.index - b.index)
-    const uma = [30, 10, -10, -30]
+    const uma = [50, 10, -10, -30]
+    // M: 20, 10, -10, -20, 最高位:30, 10, -10, -10
     const result = Array(4).fill(0)
     players.forEach((p, rank) => {
       result[p.index] = Math.round(((p.score - 300) / 10 + uma[rank]) * 10) / 10
@@ -104,8 +105,8 @@ export default function Home() {
   const submit = async () => {
     const total = scores.reduce((a, b) => a + b, 0)
 
-    if (total !== 1200) {
-      alert(`合計が1200ではありません（現在の合計：${total}）`)
+    if (total !== 1000) {
+      alert(`合計が1000ではありません（現在の合計：${total}）`)
       return
     }
 
